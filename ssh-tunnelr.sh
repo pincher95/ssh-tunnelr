@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ######################
-# ssh-tunnelr v2.4.1 #
+# ssh-tunnelr v2.4.2 #
 ######################
 
 show_help () {
@@ -37,30 +37,30 @@ MAX_PORT_NUMBER=65535
 
 while :; do
   case $1 in
-	-t)
-	  PTERMALLOC=1
-	  ;;
-	-X)
-	  XFORWARDING=1
-	  ;;
-	-d|--dry)
-	  DRY_MODE=1
-	  ;;
-	-h|--hide-tunnels)
-	  HIDE_TUNNELS=1
-	  ;;
-	-q|--quiet)
-	  QUIET=1
-	  ;;
-	--help)
-	  show_help
-  	  exit
-	  ;;
-	-?*)
-	  printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
-	  ;;
-	*)
-	  break
+    -t)
+      PTERMALLOC=1
+      ;;
+    -X)
+      XFORWARDING=1
+      ;;
+    -d|--dry)
+      DRY_MODE=1
+      ;;
+    -h|--hide-tunnels)
+      HIDE_TUNNELS=1
+      ;;
+    -q|--quiet)
+      QUIET=1
+      ;;
+    --help)
+      show_help
+      exit
+      ;;
+    -?*)
+      printf 'WARN: Unknown option (ignored): %s\n' "$1" >&2
+      ;;
+    *)
+      break
   esac
   shift
 done
@@ -76,10 +76,10 @@ throw_error () {
   MSG=$1
   EXIT=$2
   STD_MSG="Command stopped"
-  printf "\033[0;31m$MSG\033[0m\n"
+  printf "\033[0;31m%s\033[0m\n" "$MSG"
   echo "$STD_MSG"
   if $EXIT ; then
-  	exit 1
+    exit 1
   fi
 }
 
@@ -112,10 +112,10 @@ for ((i=0; i<${#HSTS[@]}; ++i)); do
   # ssh native options
   SSH_OPTIONS=""
   if [ "$PTERMALLOC" -eq "1" ]; then
-  	SSH_OPTIONS="$SSH_OPTIONS -t"
+    SSH_OPTIONS="$SSH_OPTIONS -t"
   fi
   if [ "$XFORWARDING" -eq "1" ]; then
-  	SSH_OPTIONS="$SSH_OPTIONS -X"
+    SSH_OPTIONS="$SSH_OPTIONS -X"
   fi
 
   CMD="$CMD\nssh $SSH_OPTIONS $SSH_PORT $SSH_USER$HST\n"
@@ -126,41 +126,41 @@ for ((i=0; i<${#HSTS[@]}; ++i)); do
     IFS=':' read -r -a PR <<< "${PRS[$j]}"
 
     # if single port specified
-	if (( "${#PR[@]}" == 1 )); then
+    if (( "${#PR[@]}" == 1 )); then
       PR[1]=${PR[0]}
       PR[2]=${PR[0]}
     # single port with out port specified shortcut e.g. 6000::9000
     elif (( "${#PR[@]}" == 3 )) && [[ "${PR[1]}" -eq "" ]]; then
       PR[1]=${PR[0]}
-	fi
+    fi
 
     SRC_PORT=${PR[0]}
     DST_PORT=${PR[0]}
   
-  	# if last host AND out ports range specified
+    # if last host AND out ports range specified
     if [[ "$(( i + 1 ))" -eq "${#HSTS[@]}" && "${#PR[@]}" -eq "3" ]]; then
-	  DST_PORT=${PR[2]}
-	fi
+      DST_PORT=${PR[2]}
+    fi
 
-	# checks
-	if (( $SRC_PORT < 1 )) || (( $DST_PORT < 1 )); then
-	  throw_error "Ports numbers  must be greater than 1"
-	fi
-	if (( ${PR[0]} > ${PR[1]} )); then
-	  throw_error "First port in range must be less than last port"
-	fi
+    # checks
+    if (( SRC_PORT < 1 )) || (( DST_PORT < 1 )); then
+      throw_error "Ports numbers  must be greater than 1"
+    fi
+    if (( PR[0] > PR[1] )); then
+      throw_error "First port in range must be less than last port"
+    fi
 
-	# for each port in range
-	for ((k=${PR[0]}; k<=${PR[1]}; ++k)); do
-	  # checks
-	  if (( $SRC_PORT > $MAX_PORT_NUMBER )) || (( $DST_PORT > $MAX_PORT_NUMBER )); then
-		throw_error "Ports numbers  must be less than $MAX_PORT_NUMBER - $DST_PORT"
-	  fi
+    # for each port in range
+    for ((k=PR[0]; k<=PR[1]; ++k)); do
+      # checks
+      if (( SRC_PORT > MAX_PORT_NUMBER )) || (( DST_PORT > MAX_PORT_NUMBER )); then
+        throw_error "Ports numbers  must be less than $MAX_PORT_NUMBER - $DST_PORT"
+      fi
 
-	  CMD="$CMD-L $SRC_PORT:localhost:$DST_PORT\n"
+      CMD="$CMD-L $SRC_PORT:localhost:$DST_PORT\n"
 
-	  (( SRC_PORT++ ))
-	  (( DST_PORT++ ))
+      (( SRC_PORT++ ))
+      (( DST_PORT++ ))
     done
   done
 done
@@ -168,19 +168,16 @@ done
 OUTPUT=$CMD
 OUTPUT_CMD="echo -e \"$OUTPUT\""
 
-# filter output
-FILTER=""
-if [ "$HIDE_TUNNELS" -eq "1" ]; then
+if (( HIDE_TUNNELS == 1 )); then
   OUTPUT_CMD="$OUTPUT_CMD| grep -v '\-L\\s'"
 fi
 
 # show output
 if [ "$QUIET" -eq "0" ]; then
-  eval $OUTPUT_CMD
+  eval "$OUTPUT_CMD"
 fi
 
-CMD="$(echo -e $CMD)"
+CMD="$(echo -e "$CMD")"
 if [ "$DRY_MODE" -eq "0" ]; then
   $CMD
 fi
-
